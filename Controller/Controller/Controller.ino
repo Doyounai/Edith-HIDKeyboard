@@ -4,8 +4,8 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h> // library required for IIC communication
 
-#define inputCLK 8
-#define inputDT 7
+#define inputCLK 2
+#define inputDT 3
 #define inputSW 6
 
 // Button timing variables

@@ -31,8 +31,9 @@ void drawTimeText() {
   display.setTextColor(SSD1306_WHITE);                            // Draw white text
   display.setCursor(timeTextX - (timeTextWidth / 2), timeTextY);  // Start at top-left corner
 
-  min = (millis() / 1000) / 60;
   second = millis() / 1000;
+  min = second / 60;
+  second = second % 60;
 
   // Create a String object with enough space for 4 characters (including null terminator)
   String formattedString = "";
@@ -86,5 +87,5 @@ void displaySetup() {
 }
 
 void displayUpdate() {
-  // updateDisplay();
+  updateDisplay();
 }

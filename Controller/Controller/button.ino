@@ -1,5 +1,5 @@
-ButtonDebounce sw1B(2, 50);
-ButtonDebounce sw2B(3, 50);
+ButtonDebounce sw1B(7, 50);
+ButtonDebounce sw2B(8, 50);
 ButtonDebounce sw3B(4, 50);
 ButtonDebounce sw4B(5, 50);
 

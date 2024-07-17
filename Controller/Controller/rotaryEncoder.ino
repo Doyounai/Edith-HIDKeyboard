@@ -1,8 +1,17 @@
+#include <Arduino.h>
+#include <RotaryEncoder.h>
+
+RotaryEncoder *encoder = nullptr;
+
+void checkPosition() {
+  encoder->tick();  // just call tick() to check the state.
+}
+
 // Media and volume variables
-int next = 0;
-int prev = 0;
-int previousStateCLK;
-int currentStateCLK;
+// int next = 0;
+// int prev = 0;
+// int previousStateCLK;
+// int currentStateCLK;
 
 // Other button variables
 boolean buttonVal = HIGH;           // reads value from button
@@ -16,6 +25,12 @@ boolean ignoreUp = false;           // whether to ignore the button release beca
 boolean waitForUp = false;          // when held, whether to wait for the up event
 boolean holdEventPast = false;      // whether or not the hold event happened already
 boolean longHoldEventPast = false;  // whether or not the long hold event happened already
+
+volatile byte aFlag = 0;       // let's us know when we're expecting a rising edge on pinA to signal that the encoder has arrived at a detent
+volatile byte bFlag = 0;       // let's us know when we're expecting a rising edge on pinB to signal that the encoder has arrived at a detent (opposite direction to when aFlag is set)
+volatile byte encoderPos = 0;  //this variable stores our current value of encoder position. Change to int or uin16_t instead of byte if you want to record a larger range than 0-255
+volatile byte oldEncPos = 0;   //stores the last encoder position value so we can compare to the current reading and see if it has changed (so we know when to print to the serial monitor)
+volatile byte reading = 0;     //somewhere to store the direct values we read from our interrupt pins before checking to see if we have moved a whole detent
 
 void updateDisplay();
 
@@ -89,39 +104,37 @@ void rotateRight() {
 }
 
 void rotaryEncoderSetup() {
-  pinMode(inputCLK, INPUT);
-  pinMode(inputDT, INPUT);
+  encoder = new RotaryEncoder(inputCLK, inputDT, RotaryEncoder::LatchMode::TWO03);
   pinMode(inputSW, INPUT_PULLUP);
 
   digitalWrite(inputSW, HIGH);
-  previousStateCLK = digitalRead(inputCLK);
+  // previousStateCLK = digitalRead(inputCLK);
+
+  attachInterrupt(digitalPinToInterrupt(inputCLK), checkPosition, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(inputDT), checkPosition, CHANGE);
 }
 
+static int pos = 0;
+
 void rotaryEncoderUpdate() {
-  // Read the current state of inputCLK
-  currentStateCLK = digitalRead(inputCLK);
-  // If the previous and the current state of the inputCLK are different then a pulse has occured
-  if (currentStateCLK != previousStateCLK) {
-    // If the inputDT state is different than the inputCLK state then
-    // the encoder is rotating counterclockwise
-    // Serial.print("DT :");
-    // Serial.print(digitalRead(inputDT));
-    // Serial.print("| CLK :");
-    // Serial.println(currentStateCLK);
+  encoder->tick();
+  int newPos = encoder->getPosition();
+  if (pos != newPos) {
+    // Serial.print("pos:");
+    // Serial.print(newPos);
+    // Serial.print(" dir:");
+    // Serial.println((int)(encoder->getDirection()));
 
-
-    if (digitalRead(inputDT) != currentStateCLK) {
+    if ((int)(encoder->getDirection()) == -1) {
       rotateRight();
     } else {
       rotateLeft();
     }
-    // Update previousStateCLK with the current state
-    previousStateCLK = currentStateCLK;
-    // Sends desired volume to serial monitor
-    updateDisplay();
+
+    pos = newPos;
     Serial.println(volume);
   }
-  // Checks what actions are performed
+
   int b = checkButton();
   if (b == 1) singleClick();
   if (b == 2) doubleClick();
